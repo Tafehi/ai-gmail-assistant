@@ -1,3 +1,5 @@
+from typing import Any
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
@@ -7,7 +9,7 @@ class GmailClient:
         self.service = build("gmail", "v1", credentials=credentials)
 
     def list_message_ids(self, query: str, max_results: int | None = None) -> list[str]:
-        message_ids = []
+        message_ids: list[str] = []
         page_token = None
 
         while True:
@@ -69,7 +71,7 @@ class GmailClient:
             if label["name"] == label_name:
                 return label["id"]
 
-        body = {
+        body: dict[str, Any] = {
             "name": label_name,
             "labelListVisibility": "labelShow",
             "messageListVisibility": "show",
