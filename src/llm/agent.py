@@ -73,7 +73,7 @@ def load_skills_as_system_prompt() -> str:
         if content.startswith("---"):
             end = content.find("---", 3)
             if end != -1:
-                content = content[end + 3:].strip()
+                content = content[end + 3 :].strip()
         parts.append(content)
 
     skills_content = "\n\n---\n\n".join(parts)
@@ -103,10 +103,12 @@ def get_llm(provider: str, model: str):
 
     if provider == "OpenAI":
         from langchain_openai import ChatOpenAI
+
         return ChatOpenAI(model=model, api_key=os.getenv("OPENAI_API_KEY"))
 
     elif provider == "Azure OpenAI":
         from langchain_openai import AzureChatOpenAI
+
         return AzureChatOpenAI(
             azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", model),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
@@ -116,6 +118,7 @@ def get_llm(provider: str, model: str):
 
     elif provider == "AWS Bedrock":
         from langchain_aws import ChatBedrock
+
         return ChatBedrock(
             model_id=model,
             region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
@@ -123,6 +126,7 @@ def get_llm(provider: str, model: str):
 
     elif provider == "Anthropic":
         from langchain_anthropic import ChatAnthropic
+
         return ChatAnthropic(model=model, api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     raise ValueError(f"Unknown provider: {provider}")
@@ -144,16 +148,22 @@ def check_provider_credentials(provider: str) -> str | None:
 
 def _safe_gmail_call(func):
     """Wrap Gmail API calls to catch errors and return readable messages."""
+
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
             error_detail = str(e) or repr(e)
-            if hasattr(e, 'content'):
-                error_detail = e.content.decode() if isinstance(e.content, bytes) else str(e.content)
-            elif hasattr(e, 'reason'):
+            if hasattr(e, "content"):
+                error_detail = (
+                    e.content.decode()
+                    if isinstance(e.content, bytes)
+                    else str(e.content)
+                )
+            elif hasattr(e, "reason"):
                 error_detail = e.reason
             return f"Gmail API error: {error_detail}"
+
     return wrapper
 
 
@@ -161,6 +171,7 @@ def _safe_gmail_call(func):
 def gmail_status() -> str:
     """Get current email counts: total emails, deletable (before configured date), and emails labeled Keep."""
     return _safe_gmail_call(_gmail_status_impl)()
+
 
 def _gmail_status_impl():
     client, config = _get_gmail_client()
@@ -180,6 +191,7 @@ def gmail_search(query: str, max_results: int = 20) -> str:
     """Search Gmail and return email subjects and IDs. Only returns subjects — use gmail_read to get full content, sender, and date. Use Gmail search operators like from:, subject:, after:, before:, is:unread."""
     return _safe_gmail_call(_gmail_search_impl)(query, max_results)
 
+
 def _gmail_search_impl(query, max_results):
     client, _ = _get_gmail_client()
     messages = client.list_messages_with_subjects(query, max_results)
@@ -193,6 +205,7 @@ def _gmail_search_impl(query, max_results):
 def gmail_read(message_id: str = "", query: str = "", max_results: int = 5) -> str:
     """Read full email details: subject, sender (from), date, and content snippet. ALWAYS use this tool when the user asks about email content, who sent it, or when it was received. Pass query='' for latest emails, or a specific query to filter."""
     return _safe_gmail_call(_gmail_read_impl)(message_id, query, max_results)
+
 
 def _gmail_read_impl(message_id, query, max_results):
     client, _ = _get_gmail_client()
@@ -232,6 +245,7 @@ def gmail_delete(query: str, confirm: bool = False) -> str:
     """Delete emails matching a Gmail query. First call with confirm=False to see the count, then confirm=True to actually delete. This is IRREVERSIBLE."""
     return _safe_gmail_call(_gmail_delete_impl)(query, confirm)
 
+
 def _gmail_delete_impl(query, confirm):
     client, config = _get_gmail_client()
     message_ids = client.list_message_ids(query)
@@ -247,9 +261,12 @@ def _gmail_delete_impl(query, confirm):
 
 
 @tool
-def gmail_label(label_name: str, query: str, color: str = "", max_results: int = 500) -> str:
+def gmail_label(
+    label_name: str, query: str, color: str = "", max_results: int = 500
+) -> str:
     """Apply a label to emails matching a Gmail search query. Use this for bulk labeling by pattern. Optional color: red, blue, green, yellow, purple, orange, teal, gray, pink."""
     return _safe_gmail_call(_gmail_label_impl)(label_name, query, color, max_results)
+
 
 def _gmail_label_impl(label_name, query, color, max_results):
     client, config = _get_gmail_client()
@@ -279,6 +296,7 @@ def gmail_label_by_id(label_name: str, message_ids: str, color: str = "") -> str
     """Apply a label to specific emails by their message IDs. Use this when you know the exact email IDs (from gmail_search or gmail_read). Pass message_ids as comma-separated IDs. Optional color: red, blue, green, yellow, purple, orange, teal, gray, pink."""
     return _safe_gmail_call(_gmail_label_by_id_impl)(label_name, message_ids, color)
 
+
 def _gmail_label_by_id_impl(label_name, message_ids, color):
     client, _ = _get_gmail_client()
 
@@ -300,9 +318,12 @@ def _gmail_label_by_id_impl(label_name, message_ids, color):
 
 
 @tool
-def gmail_clean_category(category: str, keep_month: str = "", confirm: bool = False) -> str:
+def gmail_clean_category(
+    category: str, keep_month: str = "", confirm: bool = False
+) -> str:
     """Delete all emails in a category (promotions, social, updates, or forums) except the specified month. Use keep_month format: MM.YYYY (e.g. '05.2026'). Defaults to current month if not specified."""
     return _safe_gmail_call(_gmail_clean_category_impl)(category, keep_month, confirm)
+
 
 def _gmail_clean_category_impl(category, keep_month, confirm):
     valid = ("promotions", "social", "updates", "forums")
@@ -338,13 +359,23 @@ def gmail_keep(count: int = 1000) -> str:
     """Label the latest N emails with 'Keep' to protect them from deletion."""
     return _safe_gmail_call(_gmail_keep_impl)(count)
 
+
 def _gmail_keep_impl(count):
     client, config = _get_gmail_client()
     labeled = label_latest_as_keep(client, count, batch_size=config.batch_size)
     return f"Labeled {labeled:,} emails as 'Keep'."
 
 
-GMAIL_TOOLS = [gmail_status, gmail_search, gmail_read, gmail_delete, gmail_label, gmail_label_by_id, gmail_clean_category, gmail_keep]
+GMAIL_TOOLS = [
+    gmail_status,
+    gmail_search,
+    gmail_read,
+    gmail_delete,
+    gmail_label,
+    gmail_label_by_id,
+    gmail_clean_category,
+    gmail_keep,
+]
 
 
 def create_agent(provider: str, model: str):
