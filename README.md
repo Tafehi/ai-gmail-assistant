@@ -92,6 +92,8 @@ OPENAI_API_KEY=sk-proj-...
 
 ## Web Chat UI
 
+![Chat UI](pics/chat-ui.png)
+
 Launch the chat interface:
 
 ```bash
