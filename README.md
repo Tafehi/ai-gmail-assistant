@@ -1,14 +1,32 @@
-# AI Gmail Assistant
+# AI Gmail Assistant — Talk to Your Gmail Using LLM & Skills
 
-Talk to your Gmail using AI. Search, read, label, and manage your inbox through natural language via Claude Code skills and Google's official Gmail MCP server — plus bulk delete old emails, clean categories, and free up storage without touching the Gmail UI.
+Talk to your Gmail using AI. Manage your inbox through natural language — search, read, label, auto-categorize, clean categories, and bulk-delete old emails using Claude Code skills and Google's official Gmail MCP server. No need to touch the Gmail UI.
 
 ## Features
 
+- **Natural language control** — ask Claude to manage your email in plain English
+- **AI auto-labeling** — reads email subjects and auto-categorizes with colored labels
+- **Smart labeling** — apply labels with colors to emails matching any Gmail query
 - **Bulk delete by date** — permanently remove all emails before a specific date across all labels
 - **Clean categories** — delete all Promotions, Social, Updates, or Forums emails except the current month
 - **Keep label** — protect your latest N emails from deletion
 - **Dry-run by default** — always preview before deleting
+- **CI/CD** — GitHub Actions with security scanning, linting, and functional tests
 - **Date formats** — supports `2024`, `03.2024`, `15.03.2024`, `2024-03`, `2024-03-15`
+
+## How It Works
+
+This project combines:
+1. **Claude Code Skills** (`.claude/skills/`) — teach Claude how to manage your Gmail
+2. **Gmail MCP Server** — lets Claude search and read your emails directly
+3. **Python CLI** — powers the actual Gmail API operations (delete, label, clean)
+
+Just open Claude Code in this project and ask:
+- *"Check my gmail status"*
+- *"Delete all emails before March 2024"*
+- *"Clean my promotions tab"*
+- *"Label my latest 50 emails based on their subject"*
+- *"Label all emails from Amazon as Shopping with orange color"*
 
 ## Prerequisites
 
@@ -46,7 +64,7 @@ KEEP_LATEST_COUNT=1000
 DRY_RUN=true
 ```
 
-## Usage
+## CLI Commands
 
 ### Authenticate
 
@@ -54,15 +72,11 @@ DRY_RUN=true
 gmail-cleaner auth
 ```
 
-Opens your browser for Google OAuth consent. Token is cached in `token.json`.
-
 ### Check Status
 
 ```bash
 gmail-cleaner status
 ```
-
-Shows total emails, count before your target date, and how many have the "Keep" label.
 
 ### Protect Recent Emails
 
@@ -71,74 +85,75 @@ gmail-cleaner keep
 gmail-cleaner keep --count 2000
 ```
 
-Labels your latest N emails with "Keep" so they're excluded from bulk deletion.
-
 ### Delete Old Emails
 
 ```bash
-# Preview what would be deleted (dry-run, default)
-gmail-cleaner delete
-
-# Override date from CLI
-gmail-cleaner delete --before 03.2024
-
-# Actually delete (requires confirmation)
-gmail-cleaner delete --before 03.2024 --no-dry-run
+gmail-cleaner delete                              # Dry-run preview
+gmail-cleaner delete --before 03.2024             # Override date
+gmail-cleaner delete --before 03.2024 --no-dry-run  # Actually delete
 ```
-
-Permanently deletes all emails before the configured date, excluding those labeled "Keep". Searches across all categories.
 
 ### Clean a Category
 
 ```bash
-# Delete all promotions except current month
-gmail-cleaner clean promotions
-
-# Delete all promotions except a specific month
+gmail-cleaner clean promotions                    # Keep current month only
 gmail-cleaner clean promotions --keep-month 05.2026
-
-# Actually delete
-gmail-cleaner clean promotions --no-dry-run
-
-# Also works for: social, updates, forums
-gmail-cleaner clean social
-gmail-cleaner clean updates --keep-month 04.2026 --no-dry-run
+gmail-cleaner clean social --no-dry-run
+gmail-cleaner clean updates
+gmail-cleaner clean forums
 ```
 
-Deletes all emails in a Gmail category while keeping only the specified month (defaults to current month).
-
-## Recommended Workflow
+### Label Emails
 
 ```bash
-gmail-cleaner auth                                  # 1. Authenticate
-gmail-cleaner status                                # 2. Check counts
-gmail-cleaner keep --count 1000                     # 3. Protect latest emails
-gmail-cleaner delete --before 03.2024               # 4. Preview deletion
-gmail-cleaner delete --before 03.2024 --no-dry-run  # 5. Delete old emails
-gmail-cleaner clean promotions --no-dry-run         # 6. Clean promotions
+gmail-cleaner label "Finance" -q "subject:invoice" --color green
+gmail-cleaner label "Shopping" -q "from:amazon" --color orange
+gmail-cleaner label "Work" -q "from:@company.com" --color purple --max 200
 ```
 
-## MCP Setup (Claude Code / Claude Desktop)
+**Available colors:** `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `teal`, `gray`, `pink`
 
-The Gmail MCP server config is in `.claude/settings.json`. Replace `<YOUR_CLIENT_ID>` and `<YOUR_CLIENT_SECRET>` with your OAuth credentials to enable interactive email management through Claude.
+## Claude Code Skills
 
-The MCP server supports searching, reading, and labeling emails. Permanent deletion is only available via the CLI.
+| Skill | Description |
+|-------|-------------|
+| `gmail` | General Gmail management — status, delete, clean, keep, label |
+| `gmail-auto-label` | AI reads email subjects and auto-categorizes with colored labels |
+
+## MCP Integration
+
+The Gmail MCP server config is in `.claude/settings.json`. Add your OAuth credentials to enable Claude to search, read, and label emails interactively via Google's official MCP endpoint.
 
 ## Safety
 
 - **Dry-run by default** — requires explicit `--no-dry-run` to delete anything
 - **Confirmation prompt** — asks before executing deletion
-- **Keep label exclusion** — emails labeled "Keep" are never deleted by the `delete` command
+- **Keep label exclusion** — emails labeled "Keep" are never deleted
 - **Irreversible** — `batchDelete` permanently removes emails with no recovery
+- **Security scans** — Bandit + Safety run on every push via GitHub Actions
+
+## CI/CD
+
+GitHub Actions runs on every push and PR:
+- **Security** — Bandit static analysis + dependency vulnerability scan
+- **Tests** — pytest functional tests for config parsing and query building
+- **Lint** — Ruff linting + formatting + mypy type checking
 
 ## Project Structure
 
 ```
-src/gmail_cleaner/
-├── __main__.py   # CLI entry point (auth, status, keep, delete, clean)
-├── auth.py       # OAuth2 flow + token caching
-├── client.py     # Gmail API wrapper
-├── config.py     # .env loading + date parsing
-├── delete.py     # Bulk deletion logic
-└── keep.py       # "Keep" label logic
+├── .claude/
+│   ├── settings.json           # Gmail MCP server config
+│   └── skills/
+│       ├── gmail.md            # General Gmail management skill
+│       └── gmail-auto-label.md # AI auto-labeling skill
+├── .github/workflows/ci.yml    # Security + tests + lint
+├── src/gmail_cleaner/
+│   ├── __main__.py             # CLI (auth, status, keep, delete, clean, label)
+│   ├── auth.py                 # OAuth2 flow + token caching
+│   ├── client.py               # Gmail API wrapper
+│   ├── config.py               # .env loading + date parsing
+│   ├── delete.py               # Bulk deletion logic
+│   └── keep.py                 # "Keep" label logic
+└── tests/                      # Functional tests
 ```
