@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install bandit safety
+
+      - name: Bandit security scan
+        run: bandit -r src/ -ll -ii
+
+      - name: Check dependencies for vulnerabilities
+        run: safety check --file <(pip freeze)
+        continue-on-error: true
+
+  test:
+    name: Functional Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+
+      - name: CLI loads correctly
+        run: |
+          gmail-cleaner --help
+          gmail-cleaner auth --help
+          gmail-cleaner status --help
+          gmail-cleaner delete --help
+          gmail-cleaner keep --help
+          gmail-cleaner clean --help
+          gmail-cleaner label --help
+
+      - name: Config parsing tests
+        run: pytest tests/ -v
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install ruff mypy
+
+      - name: Ruff lint
+        run: ruff check src/
+
+      - name: Ruff format check
+        run: ruff format --check src/
+
+      - name: Type check
+        run: mypy src/ --ignore-missing-imports
