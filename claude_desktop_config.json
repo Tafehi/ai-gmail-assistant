@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "url": "https://gmailmcp.googleapis.com/mcp/v1",
+      "auth": {
+        "type": "oauth2",
+        "clientId": "<YOUR_CLIENT_ID>",
+        "clientSecret": "<YOUR_CLIENT_SECRET>",
+        "authorizationUrl": "https://accounts.google.com/o/oauth2/auth",
+        "tokenUrl": "https://oauth2.googleapis.com/token",
+        "scopes": [
+          "https://www.googleapis.com/auth/gmail.readonly",
+          "https://www.googleapis.com/auth/gmail.compose"
+        ]
+      }
+    }
+  }
+}
