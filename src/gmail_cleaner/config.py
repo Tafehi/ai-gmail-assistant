@@ -20,13 +20,20 @@ def parse_date_input(value: str) -> date:
     value = value.strip()
     if len(value) == 4 and value.isdigit():
         return date(int(value), 1, 1)
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
-        try:
-            parts = value.replace("/", "-").split("-")
-            return date(int(parts[0]), int(parts[1]), int(parts[2]))
-        except (ValueError, IndexError):
-            continue
-    raise ValueError(f"Cannot parse date: '{value}'. Use YYYY, YYYY-MM-DD, or YYYY/MM/DD.")
+    # Handle dot format: MM.YYYY or DD.MM.YYYY
+    if "." in value:
+        parts = value.split(".")
+        if len(parts) == 2:
+            return date(int(parts[1]), int(parts[0]), 1)
+        if len(parts) == 3:
+            return date(int(parts[2]), int(parts[1]), int(parts[0]))
+    # Handle dash/slash format: YYYY-MM or YYYY-MM-DD
+    parts = value.replace("/", "-").split("-")
+    if len(parts) == 2:
+        return date(int(parts[0]), int(parts[1]), 1)
+    if len(parts) == 3:
+        return date(int(parts[0]), int(parts[1]), int(parts[2]))
+    raise ValueError(f"Cannot parse date: '{value}'. Use YYYY, MM.YYYY, or YYYY-MM-DD.")
 
 
 def load_config(env_path: Path | None = None) -> Config:

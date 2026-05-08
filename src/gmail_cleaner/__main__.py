@@ -1,4 +1,5 @@
 import click
+from datetime import date
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
@@ -36,10 +37,12 @@ def status():
     """Show current email counts and configuration."""
     client, config = _get_client()
 
-    total = client.get_estimated_count("")
+    console.print("Counting emails (this may take a moment)...")
+
+    total = client.count_messages("")
     query = build_delete_query(config.delete_before_date)
-    deletable = client.get_estimated_count(query)
-    keep_count = client.get_estimated_count("label:Keep")
+    deletable = client.count_messages(query)
+    keep_count = client.count_messages("label:Keep")
 
     console.print(f"\n[bold]Gmail Status[/bold]")
     console.print(f"  Total emails:          {total:,}")
@@ -111,6 +114,63 @@ def delete(dry_run: bool | None, before: str | None, exclude_keep: bool):
         deleted = execute_deletion(client, message_ids, config.batch_size, on_progress)
 
     console.print(f"\n[green]Done.[/green] Permanently deleted {deleted:,} emails.")
+
+
+@cli.command()
+@click.argument("category", type=click.Choice(["promotions", "social", "updates", "forums"]))
+@click.option("--keep-month", type=str, help="Month to keep (e.g. 05.2026). Defaults to current month.")
+@click.option("--dry-run/--no-dry-run", default=None, help="Preview without deleting (overrides .env)")
+def clean(category: str, keep_month: str | None, dry_run: bool | None):
+    """Delete all emails in a category except the specified month.
+
+    Example: gmail-cleaner clean promotions --keep-month 05.2026
+    """
+    client, config = _get_client()
+    is_dry_run = dry_run if dry_run is not None else config.dry_run
+
+    if keep_month:
+        keep_date = parse_date_input(keep_month)
+    else:
+        today = date.today()
+        keep_date = date(today.year, today.month, 1)
+
+    query = f"category:{category} before:{keep_date.year}/{keep_date.month:02d}/{keep_date.day:02d}"
+    console.print(f"Query: [cyan]{query}[/cyan]")
+    console.print(f"Keeping {category} emails from {keep_date.strftime('%B %Y')} onwards.")
+    console.print("Scanning emails...")
+
+    message_ids = client.list_message_ids(query)
+    total = len(message_ids)
+
+    if total == 0:
+        console.print(f"[green]No {category} emails found to delete.[/green]")
+        return
+
+    console.print(f"\n[bold red]Found {total:,} {category} emails to permanently delete.[/bold red]")
+
+    if is_dry_run:
+        console.print("[yellow]DRY RUN — no emails were deleted.[/yellow]")
+        console.print("Run with --no-dry-run to actually delete.")
+        return
+
+    if not click.confirm(f"\nPermanently delete {total:,} {category} emails? This cannot be undone"):
+        console.print("Cancelled.")
+        return
+
+    with Progress(
+        SpinnerColumn(),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TextColumn("({task.completed}/{task.total})"),
+    ) as progress:
+        task = progress.add_task("Deleting...", total=total)
+
+        def on_progress(deleted, _total):
+            progress.update(task, completed=deleted)
+
+        deleted = execute_deletion(client, message_ids, config.batch_size, on_progress)
+
+    console.print(f"\n[green]Done.[/green] Permanently deleted {deleted:,} {category} emails.")
 
 
 if __name__ == "__main__":

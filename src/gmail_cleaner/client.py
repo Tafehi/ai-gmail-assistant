@@ -28,11 +28,24 @@ class GmailClient:
 
         return message_ids
 
-    def get_estimated_count(self, query: str) -> int:
-        response = self.service.users().messages().list(
-            userId="me", q=query, maxResults=1
-        ).execute()
-        return response.get("resultSizeEstimate", 0)
+    def count_messages(self, query: str) -> int:
+        count = 0
+        page_token = None
+
+        while True:
+            kwargs = {"userId": "me", "q": query, "maxResults": 500}
+            if page_token:
+                kwargs["pageToken"] = page_token
+
+            response = self.service.users().messages().list(**kwargs).execute()
+            messages = response.get("messages", [])
+            count += len(messages)
+
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+
+        return count
 
     def batch_delete(self, message_ids: list[str]) -> None:
         self.service.users().messages().batchDelete(
