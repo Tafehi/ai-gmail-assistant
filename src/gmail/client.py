@@ -100,6 +100,34 @@ class GmailClient:
                 return h["value"]
         return "(no subject)"
 
+    def get_message_detail(self, message_id: str) -> dict:
+        msg = (
+            self.service.users()
+            .messages()
+            .get(userId="me", id=message_id, format="full")
+            .execute()
+        )
+        headers = msg.get("payload", {}).get("headers", [])
+        detail = {
+            "id": message_id,
+            "subject": "",
+            "from": "",
+            "to": "",
+            "date": "",
+            "snippet": msg.get("snippet", ""),
+        }
+        for h in headers:
+            name = h["name"].lower()
+            if name == "subject":
+                detail["subject"] = h["value"]
+            elif name == "from":
+                detail["from"] = h["value"]
+            elif name == "to":
+                detail["to"] = h["value"]
+            elif name == "date":
+                detail["date"] = h["value"]
+        return detail
+
     def list_messages_with_subjects(
         self, query: str, max_results: int | None = None
     ) -> list[dict]:

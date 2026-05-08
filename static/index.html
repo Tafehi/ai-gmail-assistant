@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gmail Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0a0a0f;
+            color: #e4e4e7;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 280px;
+            background: #111118;
+            border-right: 1px solid rgba(139, 92, 246, 0.15);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            gap: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+            position: relative;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fafafa;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #71717a;
+            margin-bottom: 8px;
+        }
+
+        .select-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            appearance: none;
+            background: rgba(24, 24, 35, 0.8);
+            color: #e4e4e7;
+            border: 1px solid rgba(63, 63, 70, 0.6);
+            border-radius: 10px;
+            padding: 10px 36px 10px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .select-wrapper select:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .select-wrapper select:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        .select-wrapper::after {
+            content: '▾';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #71717a;
+            pointer-events: none;
+            font-size: 12px;
+        }
+
+        /* --- Status Cards --- */
+        .status-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .status-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(24, 24, 35, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(39, 39, 42, 0.6);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.connected {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+            animation: glow 2s infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        .status-indicator.checking {
+            background: #eab308;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+            50% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.8); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .status-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #d4d4d8;
+        }
+
+        .status-detail {
+            font-size: 11px;
+            color: #71717a;
+        }
+
+        .new-chat-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 10px;
+            color: #a78bfa;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        /* --- Main Content --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            right: -200px;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .main::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 1;
+        }
+
+        /* --- Chat Area --- */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-track { background: transparent; }
+        .chat-container::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+            padding: 40px;
+            gap: 20px;
+        }
+
+        .welcome-glow {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .welcome-screen h2 {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e4e4e7, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-screen p {
+            color: #71717a;
+            font-size: 14px;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .suggestion {
+            background: rgba(24, 24, 35, 0.6);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+            border-radius: 12px;
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 13px;
+            color: #a1a1aa;
+            cursor: pointer;
+            transition: all 0.25s;
+            backdrop-filter: blur(4px);
+        }
+
+        .suggestion:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            color: #e4e4e7;
+            background: rgba(139, 92, 246, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+        }
+
+        .suggestion .suggestion-icon {
+            font-size: 16px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        /* --- Messages --- */
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 720px;
+            width: 100%;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+            margin-left: auto;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .message.assistant .avatar {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .message.user .avatar {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .bubble {
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 14px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+        .message.assistant .bubble {
+            background: rgba(24, 24, 35, 0.8);
+            border: 1px solid rgba(39, 39, 42, 0.6);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user .bubble {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.15));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bubble pre {
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid rgba(39, 39, 42, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        .bubble code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: rgba(10, 10, 15, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .bubble pre code { background: none; padding: 0; }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 14px 18px;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            width: 7px;
+            height: 7px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* --- Input Area --- */
+        .input-area {
+            padding: 20px 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: rgba(17, 17, 24, 0.8);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+            border-radius: 16px;
+            padding: 8px 8px 8px 18px;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1), 0 4px 20px rgba(139, 92, 246, 0.08);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e4e4e7;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            min-height: 40px;
+            line-height: 1.5;
+            padding: 6px 0;
+        }
+
+        .input-wrapper textarea::placeholder { color: #52525b; }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .send-btn:active { transform: scale(0.95); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .send-btn svg { width: 18px; height: 18px; }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .suggestions { grid-template-columns: 1fr; }
+            .chat-container { padding: 16px; }
+            .input-area { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">✉</div>
+            <span class="logo-text">Gmail Assistant</span>
+        </div>
+
+        <div>
+            <div class="section-label">Provider</div>
+            <div class="select-group">
+                <div class="select-wrapper">
+                    <select id="provider-select"></select>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="section-label">Model</div>
+            <div class="select-group">
+                <div class="select-wrapper">
+                    <select id="model-select"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <div class="section-label">Connections</div>
+
+            <div class="status-card">
+                <div class="status-indicator checking" id="llm-status"></div>
+                <div class="status-info">
+                    <span class="status-label">LLM Provider</span>
+                    <span class="status-detail" id="llm-status-text">Checking...</span>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-indicator checking" id="gmail-status"></div>
+                <div class="status-info">
+                    <span class="status-label">Gmail API</span>
+                    <span class="status-detail" id="gmail-status-text">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="new-chat-btn" onclick="clearChat()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            New Chat
+        </button>
+    </div>
+
+    <div class="main">
+        <canvas id="particle-canvas"></canvas>
+        <div class="chat-container" id="chat-container">
+            <div class="welcome-screen" id="welcome">
+                <div class="welcome-glow">✉</div>
+                <h2>AI Gmail Assistant</h2>
+                <p>Manage your inbox with natural language. Search, label, categorize, and clean your emails using AI.</p>
+                <div class="suggestions">
+                    <div class="suggestion" onclick="sendSuggestion(this)">
+                        <span class="suggestion-icon">📊</span>
+                        How many emails do I have?
+                    </div>
+                    <div class="suggestion" onclick="sendSuggestion(this)">
+                        <span class="suggestion-icon">🔍</span>
+                        Search emails from Amazon
+                    </div>
+                    <div class="suggestion" onclick="sendSuggestion(this)">
+                        <span class="suggestion-icon">🧹</span>
+                        Clean my promotions tab
+                    </div>
+                    <div class="suggestion" onclick="sendSuggestion(this)">
+                        <span class="suggestion-icon">🏷️</span>
+                        Label invoices as Finance
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="input" placeholder="Ask about your Gmail..." rows="1"
+                          onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let providers = {};
+        let chatHistory = [];
+
+        async function init() {
+            try {
+                const res = await fetch('/api/providers');
+                providers = await res.json();
+                const providerSelect = document.getElementById('provider-select');
+                Object.keys(providers).forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p;
+                    opt.textContent = p;
+                    if (p === 'Anthropic') opt.selected = true;
+                    providerSelect.appendChild(opt);
+                });
+                updateModels();
+                providerSelect.addEventListener('change', () => { updateModels(); checkConnections(); });
+                document.getElementById('model-select').addEventListener('change', checkConnections);
+                checkConnections();
+            } catch (e) {
+                setLLMStatus('disconnected', 'Server offline');
+                setGmailStatus('disconnected', 'Server offline');
+            }
+        }
+
+        function updateModels() {
+            const provider = document.getElementById('provider-select').value;
+            const modelSelect = document.getElementById('model-select');
+            modelSelect.innerHTML = '';
+            (providers[provider]?.models || []).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                modelSelect.appendChild(opt);
+            });
+        }
+
+        async function checkConnections() {
+            // Check Gmail
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.gmail_authenticated) {
+                    setGmailStatus('connected', 'Authenticated');
+                } else {
+                    setGmailStatus('disconnected', 'Not authenticated');
+                }
+            } catch {
+                setGmailStatus('disconnected', 'Server offline');
+            }
+
+            // Check LLM credentials
+            const provider = document.getElementById('provider-select').value;
+            try {
+                const res = await fetch('/api/providers');
+                const data = await res.json();
+                const envKeys = data[provider]?.env_keys || [];
+                if (envKeys.length === 0) {
+                    setLLMStatus('connected', provider + ' ready');
+                } else {
+                    // We'll check via a lightweight call
+                    const checkRes = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({message: '', provider, model: document.getElementById('model-select').value, history: []})
+                    });
+                    const checkData = await checkRes.json();
+                    if (checkData.error && checkData.error.includes('Missing credentials')) {
+                        setLLMStatus('disconnected', 'Missing API key');
+                    } else {
+                        setLLMStatus('connected', provider + ' ready');
+                    }
+                }
+            } catch {
+                setLLMStatus('disconnected', 'Cannot verify');
+            }
+        }
+
+        function setLLMStatus(state, text) {
+            const el = document.getElementById('llm-status');
+            const textEl = document.getElementById('llm-status-text');
+            el.className = 'status-indicator ' + state;
+            textEl.textContent = text;
+        }
+
+        function setGmailStatus(state, text) {
+            const el = document.getElementById('gmail-status');
+            const textEl = document.getElementById('gmail-status-text');
+            el.className = 'status-indicator ' + state;
+            textEl.textContent = text;
+        }
+
+        function addMessage(role, content) {
+            const welcome = document.getElementById('welcome');
+            if (welcome) welcome.remove();
+
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const avatar = role === 'assistant' ? '✦' : '→';
+            div.innerHTML = `
+                <div class="avatar">${avatar}</div>
+                <div class="bubble">${formatContent(content)}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatContent(text) {
+            text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        function showTyping() {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+            div.id = 'typing';
+            div.innerHTML = `
+                <div class="avatar">✦</div>
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeTyping() {
+            const el = document.getElementById('typing');
+            if (el) el.remove();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            autoResize(input);
+            document.getElementById('send-btn').disabled = true;
+
+            addMessage('user', text);
+            chatHistory.push({ role: 'user', content: text });
+            showTyping();
+
+            try {
+                const provider = document.getElementById('provider-select').value;
+                const model = document.getElementById('model-select').value;
+
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        provider,
+                        model,
+                        history: chatHistory.slice(0, -1)
+                    })
+                });
+
+                const data = await res.json();
+                removeTyping();
+
+                if (data.error) {
+                    addMessage('assistant', `⚠️ ${data.error}`);
+                } else {
+                    addMessage('assistant', data.response);
+                    chatHistory.push({ role: 'assistant', content: data.response });
+                }
+            } catch (err) {
+                removeTyping();
+                addMessage('assistant', `⚠️ Connection error: ${err.message}`);
+            }
+
+            document.getElementById('send-btn').disabled = false;
+            input.focus();
+        }
+
+        function sendSuggestion(el) {
+            const text = el.textContent.trim().replace(/^.+\n/, '').trim();
+            document.getElementById('input').value = text;
+            sendMessage();
+        }
+
+        function clearChat() {
+            chatHistory = [];
+            const container = document.getElementById('chat-container');
+            container.innerHTML = `
+                <div class="welcome-screen" id="welcome">
+                    <div class="welcome-glow">✉</div>
+                    <h2>AI Gmail Assistant</h2>
+                    <p>Manage your inbox with natural language. Search, label, categorize, and clean your emails using AI.</p>
+                    <div class="suggestions">
+                        <div class="suggestion" onclick="sendSuggestion(this)">
+                            <span class="suggestion-icon">📊</span>
+                            How many emails do I have?
+                        </div>
+                        <div class="suggestion" onclick="sendSuggestion(this)">
+                            <span class="suggestion-icon">🔍</span>
+                            Search emails from Amazon
+                        </div>
+                        <div class="suggestion" onclick="sendSuggestion(this)">
+                            <span class="suggestion-icon">🧹</span>
+                            Clean my promotions tab
+                        </div>
+                        <div class="suggestion" onclick="sendSuggestion(this)">
+                            <span class="suggestion-icon">🏷️</span>
+                            Label invoices as Finance
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        init();
+
+        // --- Particle Network Animation ---
+        (function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const PARTICLE_COUNT = 250;
+            const CONNECTION_DIST = 180;
+            let w, h;
+
+            function resize() {
+                w = canvas.width = canvas.offsetWidth;
+                h = canvas.height = canvas.offsetHeight;
+            }
+
+            function createParticle() {
+                return {
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    vx: (Math.random() - 0.5) * 0.6,
+                    vy: (Math.random() - 0.5) * 0.6,
+                    radius: Math.random() * 3 + 1.5,
+                };
+            }
+
+            function initParticles() {
+                resize();
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push(createParticle());
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0 || p.x > w) p.vx *= -1;
+                    if (p.y < 0 || p.y > h) p.vy *= -1;
+
+                    // Draw particle with glow
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(56, 210, 220, 0.85)';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = 'rgba(56, 210, 220, 0.8)';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    // Draw connections
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p2 = particles[j];
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < CONNECTION_DIST) {
+                            const opacity = (1 - dist / CONNECTION_DIST) * 0.7;
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `rgba(56, 210, 220, ${opacity})`;
+                            ctx.lineWidth = 1.2;
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => { resize(); });
+            initParticles();
+            animate();
+        })();
+    </script>
+</body>
+</html>

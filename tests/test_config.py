@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from gmail_cleaner.config import parse_date_input
-from gmail_cleaner.delete import build_delete_query
+from src.gmail.config import parse_date_input
+from src.gmail.delete import build_delete_query
 
 
 class TestParseDateInput:

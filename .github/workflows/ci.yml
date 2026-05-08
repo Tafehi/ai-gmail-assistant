@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e .
-          pip install pytest
+          pip install pytest httpx
 
       - name: CLI loads correctly
         run: |
@@ -53,9 +53,13 @@ jobs:
           gmail-cleaner keep --help
           gmail-cleaner clean --help
           gmail-cleaner label --help
+          gmail-cleaner chat --help
 
       - name: Config parsing tests
-        run: pytest tests/ -v
+        run: pytest tests/test_config.py -v
+
+      - name: FastAPI endpoint tests
+        run: pytest tests/test_api.py -v
 
   lint:
     name: Lint & Type Check

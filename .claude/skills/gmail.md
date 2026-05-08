@@ -68,3 +68,4 @@ Edit `.env` to configure:
 3. Run `delete` (dry-run) to preview what would be removed
 4. Run `delete --no-dry-run` to permanently delete old emails
 5. Run `clean promotions` to clear out a specific category
+6. Run `gmail-cleaner chat` to launch the Streamlit chat UI (uses LangChain with any LLM provider)

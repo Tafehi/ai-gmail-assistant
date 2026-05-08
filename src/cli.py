@@ -1,13 +1,15 @@
-import click
 from datetime import date
+from pathlib import Path
+
+import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
-from .auth import get_credentials
-from .client import GmailClient
-from .config import load_config, parse_date_input
-from .delete import build_delete_query, find_deletable_messages, execute_deletion
-from .keep import label_latest_as_keep
+from src.gmail.auth import get_credentials
+from src.gmail.client import GmailClient
+from src.gmail.config import load_config, parse_date_input
+from src.gmail.delete import build_delete_query, find_deletable_messages, execute_deletion
+from src.gmail.keep import label_latest_as_keep
 
 console = Console()
 
@@ -271,6 +273,15 @@ def label(label_name: str, query: str, color: str | None, max_results: int | Non
         client.batch_modify(batch, add_label_ids=[label_id])
 
     console.print(f"[green]Done.[/green] Labeled {total:,} emails as '{label_name}'.")
+
+
+@cli.command()
+def chat():
+    """Launch the web chat UI for natural language Gmail management."""
+    import uvicorn
+    console.print("[bold]Starting AI Gmail Assistant...[/bold]")
+    console.print("Open [cyan]http://localhost:8000[/cyan] in your browser.\n")
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
 
 
 if __name__ == "__main__":
