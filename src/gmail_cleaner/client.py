@@ -58,7 +58,12 @@ class GmailClient:
             body={"ids": message_ids, "addLabelIds": add_label_ids},
         ).execute()
 
-    def get_or_create_label(self, label_name: str, bg_color: str | None = None, text_color: str | None = None) -> str:
+    def get_or_create_label(
+        self,
+        label_name: str,
+        bg_color: str | None = None,
+        text_color: str | None = None,
+    ) -> str:
         results = self.service.users().labels().list(userId="me").execute()
         for label in results.get("labels", []):
             if label["name"] == label_name:
@@ -76,16 +81,26 @@ class GmailClient:
         return created["id"]
 
     def get_message_subject(self, message_id: str) -> str:
-        msg = self.service.users().messages().get(
-            userId="me", id=message_id, format="metadata", metadataHeaders=["Subject"]
-        ).execute()
+        msg = (
+            self.service.users()
+            .messages()
+            .get(
+                userId="me",
+                id=message_id,
+                format="metadata",
+                metadataHeaders=["Subject"],
+            )
+            .execute()
+        )
         headers = msg.get("payload", {}).get("headers", [])
         for h in headers:
             if h["name"] == "Subject":
                 return h["value"]
         return "(no subject)"
 
-    def list_messages_with_subjects(self, query: str, max_results: int | None = None) -> list[dict]:
+    def list_messages_with_subjects(
+        self, query: str, max_results: int | None = None
+    ) -> list[dict]:
         message_ids = self.list_message_ids(query, max_results)
         results = []
         for mid in message_ids:

@@ -29,7 +29,9 @@ def auth():
     """Authenticate with Google (run OAuth flow)."""
     config = load_config()
     get_credentials(config.credentials_path, config.token_path)
-    console.print(f"[green]Authenticated successfully.[/green] Token saved to {config.token_path}")
+    console.print(
+        f"[green]Authenticated successfully.[/green] Token saved to {config.token_path}"
+    )
 
 
 @cli.command()
@@ -48,11 +50,15 @@ def status():
     console.print(f"  Total emails:          {total:,}")
     console.print(f"  Before {config.delete_before_date}:  {deletable:,}")
     console.print(f"  Labeled 'Keep':        {keep_count:,}")
-    console.print(f"\n[dim]Config: delete before {config.delete_before_date}, keep latest {config.keep_latest_count}[/dim]")
+    console.print(
+        f"\n[dim]Config: delete before {config.delete_before_date}, keep latest {config.keep_latest_count}[/dim]"
+    )
 
 
 @cli.command()
-@click.option("--count", type=int, help="Number of latest emails to keep (overrides .env)")
+@click.option(
+    "--count", type=int, help="Number of latest emails to keep (overrides .env)"
+)
 def keep(count: int | None):
     """Label the latest N emails with 'Keep' label."""
     client, config = _get_client()
@@ -60,7 +66,9 @@ def keep(count: int | None):
 
     console.print(f"Labeling latest {n:,} emails as 'Keep'...")
 
-    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+    with Progress(
+        SpinnerColumn(), TextColumn("[progress.description]{task.description}")
+    ) as progress:
         progress.add_task(description="Applying labels...", total=None)
         labeled = label_latest_as_keep(client, n, batch_size=config.batch_size)
 
@@ -68,9 +76,17 @@ def keep(count: int | None):
 
 
 @cli.command()
-@click.option("--dry-run/--no-dry-run", default=None, help="Preview without deleting (overrides .env)")
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=None,
+    help="Preview without deleting (overrides .env)",
+)
 @click.option("--before", type=str, help="Delete before date (overrides .env)")
-@click.option("--exclude-keep/--no-exclude-keep", default=True, help="Exclude emails labeled 'Keep'")
+@click.option(
+    "--exclude-keep/--no-exclude-keep",
+    default=True,
+    help="Exclude emails labeled 'Keep'",
+)
 def delete(dry_run: bool | None, before: str | None, exclude_keep: bool):
     """Permanently delete all emails before the configured date."""
     client, config = _get_client()
@@ -89,14 +105,18 @@ def delete(dry_run: bool | None, before: str | None, exclude_keep: bool):
         console.print("[green]No emails found matching criteria.[/green]")
         return
 
-    console.print(f"\n[bold red]Found {total:,} emails to permanently delete.[/bold red]")
+    console.print(
+        f"\n[bold red]Found {total:,} emails to permanently delete.[/bold red]"
+    )
 
     if is_dry_run:
         console.print("[yellow]DRY RUN — no emails were deleted.[/yellow]")
         console.print("Run with --no-dry-run to actually delete.")
         return
 
-    if not click.confirm(f"\nPermanently delete {total:,} emails? This cannot be undone"):
+    if not click.confirm(
+        f"\nPermanently delete {total:,} emails? This cannot be undone"
+    ):
         console.print("Cancelled.")
         return
 
@@ -117,9 +137,19 @@ def delete(dry_run: bool | None, before: str | None, exclude_keep: bool):
 
 
 @cli.command()
-@click.argument("category", type=click.Choice(["promotions", "social", "updates", "forums"]))
-@click.option("--keep-month", type=str, help="Month to keep (e.g. 05.2026). Defaults to current month.")
-@click.option("--dry-run/--no-dry-run", default=None, help="Preview without deleting (overrides .env)")
+@click.argument(
+    "category", type=click.Choice(["promotions", "social", "updates", "forums"])
+)
+@click.option(
+    "--keep-month",
+    type=str,
+    help="Month to keep (e.g. 05.2026). Defaults to current month.",
+)
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=None,
+    help="Preview without deleting (overrides .env)",
+)
 def clean(category: str, keep_month: str | None, dry_run: bool | None):
     """Delete all emails in a category except the specified month.
 
@@ -136,7 +166,9 @@ def clean(category: str, keep_month: str | None, dry_run: bool | None):
 
     query = f"category:{category} before:{keep_date.year}/{keep_date.month:02d}/{keep_date.day:02d}"
     console.print(f"Query: [cyan]{query}[/cyan]")
-    console.print(f"Keeping {category} emails from {keep_date.strftime('%B %Y')} onwards.")
+    console.print(
+        f"Keeping {category} emails from {keep_date.strftime('%B %Y')} onwards."
+    )
     console.print("Scanning emails...")
 
     message_ids = client.list_message_ids(query)
@@ -146,14 +178,18 @@ def clean(category: str, keep_month: str | None, dry_run: bool | None):
         console.print(f"[green]No {category} emails found to delete.[/green]")
         return
 
-    console.print(f"\n[bold red]Found {total:,} {category} emails to permanently delete.[/bold red]")
+    console.print(
+        f"\n[bold red]Found {total:,} {category} emails to permanently delete.[/bold red]"
+    )
 
     if is_dry_run:
         console.print("[yellow]DRY RUN — no emails were deleted.[/yellow]")
         console.print("Run with --no-dry-run to actually delete.")
         return
 
-    if not click.confirm(f"\nPermanently delete {total:,} {category} emails? This cannot be undone"):
+    if not click.confirm(
+        f"\nPermanently delete {total:,} {category} emails? This cannot be undone"
+    ):
         console.print("Cancelled.")
         return
 
@@ -170,14 +206,23 @@ def clean(category: str, keep_month: str | None, dry_run: bool | None):
 
         deleted = execute_deletion(client, message_ids, config.batch_size, on_progress)
 
-    console.print(f"\n[green]Done.[/green] Permanently deleted {deleted:,} {category} emails.")
+    console.print(
+        f"\n[green]Done.[/green] Permanently deleted {deleted:,} {category} emails."
+    )
 
 
 @cli.command()
 @click.argument("label_name")
 @click.option("--query", "-q", required=True, help="Gmail search query to match emails")
-@click.option("--color", type=str, default=None, help="Label color (e.g. red, blue, green, yellow, purple, orange)")
-@click.option("--max", "max_results", type=int, default=None, help="Max emails to label")
+@click.option(
+    "--color",
+    type=str,
+    default=None,
+    help="Label color (e.g. red, blue, green, yellow, purple, orange)",
+)
+@click.option(
+    "--max", "max_results", type=int, default=None, help="Max emails to label"
+)
 def label(label_name: str, query: str, color: str | None, max_results: int | None):
     """Apply a label to emails matching a query.
 
@@ -202,7 +247,9 @@ def label(label_name: str, query: str, color: str | None, max_results: int | Non
         if color.lower() in COLOR_MAP:
             bg_color, text_color = COLOR_MAP[color.lower()]
         else:
-            console.print(f"[yellow]Unknown color '{color}'. Available: {', '.join(COLOR_MAP.keys())}[/yellow]")
+            console.print(
+                f"[yellow]Unknown color '{color}'. Available: {', '.join(COLOR_MAP.keys())}[/yellow]"
+            )
             return
 
     label_id = client.get_or_create_label(label_name, bg_color, text_color)
