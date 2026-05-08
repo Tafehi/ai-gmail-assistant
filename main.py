@@ -76,11 +76,31 @@ async def chat(req: ChatRequest):
                 messages.append(AIMessage(content=m["content"]))
         messages.append(HumanMessage(content=req.message))
 
-        result = agent.invoke({"messages": messages})
-        response = result["messages"][-1].content
+        result = agent.invoke({"messages": messages}, config={"recursion_limit": 50})
+
+        # Extract the final AI response (skip tool messages)
+        response = ""
+        for msg in reversed(result["messages"]):
+            if isinstance(msg, AIMessage) and msg.content:
+                if isinstance(msg.content, list):
+                    # Handle structured content blocks
+                    text_parts = [b["text"] for b in msg.content if isinstance(b, dict) and b.get("type") == "text"]
+                    if text_parts:
+                        response = "\n".join(text_parts)
+                        break
+                elif isinstance(msg.content, str) and msg.content.strip():
+                    response = msg.content
+                    break
+
+        if not response:
+            response = "Action completed but no summary was provided by the model."
+
         return {"response": response}
     except Exception as e:
-        return {"error": str(e)}
+        import traceback
+        error_msg = str(e) or repr(e)
+        traceback.print_exc()
+        return {"error": f"{type(e).__name__}: {error_msg}"}
 
 
 @app.post("/api/auth")

@@ -99,3 +99,27 @@ src/
 - Dry-run mode is ON by default; requires explicit `--no-dry-run` to delete
 - Gmail MCP server config is in `.claude/settings.json` for interactive use via Claude
 - `client.list_messages_with_subjects()` fetches message IDs + subjects for AI categorization
+- `client.get_message_detail()` fetches full email info (from, date, subject, snippet)
+
+## LangGraph Agent Tools
+
+| Tool | Purpose |
+|------|---------|
+| `gmail_status` | Email counts (total, deletable, kept) |
+| `gmail_search` | Search by query, returns subjects + IDs only |
+| `gmail_read` | Read full email details (sender, date, content snippet) |
+| `gmail_delete` | Delete emails by query (requires confirm=True) |
+| `gmail_label` | Label emails by Gmail search query |
+| `gmail_label_by_id` | Label specific emails by message ID (comma-separated) |
+| `gmail_clean_category` | Delete all in a category except specified month |
+| `gmail_keep` | Protect latest N emails with Keep label |
+
+## Lessons Learned / Dev Notes
+
+- **LangChain 1.x moved agents to LangGraph** — use `from langgraph.prebuilt import create_react_agent`, NOT `from langchain.agents import AgentExecutor`
+- **`recursion_limit` goes in `invoke()` config**, not in `create_react_agent()` — e.g. `agent.invoke({...}, config={"recursion_limit": 50})`
+- **Don't name a folder `langchain/`** — conflicts with the installed package. Used `src/llm/` instead
+- **Agent response extraction** — the last message may be a ToolMessage, not AIMessage. Loop backwards through `result["messages"]` to find the last AIMessage with content
+- **API key errors appear as empty errors** — always include `type(e).__name__` in error responses for debugging
+- **LLM tool descriptions drive behavior** — be very explicit about when to use each tool (e.g. "ALWAYS use gmail_read when user asks about content/sender/date")
+- **Anthropic API requires billing** — `ANTHROPIC_API_KEY` needs credits loaded at console.anthropic.com. Switch to OpenAI if no Anthropic credits available

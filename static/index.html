@@ -637,7 +637,7 @@
                     const opt = document.createElement('option');
                     opt.value = p;
                     opt.textContent = p;
-                    if (p === 'Anthropic') opt.selected = true;
+                    if (p === 'OpenAI') opt.selected = true;
                     providerSelect.appendChild(opt);
                 });
                 updateModels();
@@ -794,14 +794,17 @@
                 removeTyping();
 
                 if (data.error) {
-                    addMessage('assistant', `⚠️ ${data.error}`);
-                } else {
+                    const errorMsg = data.error || 'Something went wrong. Please try again or simplify your request.';
+                    addMessage('assistant', `Error: ${errorMsg}`);
+                } else if (data.response) {
                     addMessage('assistant', data.response);
                     chatHistory.push({ role: 'assistant', content: data.response });
+                } else {
+                    addMessage('assistant', 'The action was completed but no details were returned. Try asking again with a smaller number of emails.');
                 }
             } catch (err) {
                 removeTyping();
-                addMessage('assistant', `⚠️ Connection error: ${err.message}`);
+                addMessage('assistant', `Connection error: ${err.message}. Make sure the server is running.`);
             }
 
             document.getElementById('send-btn').disabled = false;
