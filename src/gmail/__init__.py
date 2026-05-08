@@ -1,5 +1,9 @@
-from .auth import get_credentials
-from .client import GmailClient
-from .config import Config, load_config, parse_date_input
-from .delete import build_delete_query, execute_deletion, find_deletable_messages
-from .keep import label_latest_as_keep
+from .auth import get_credentials as get_credentials
+from .client import GmailClient as GmailClient
+from .config import Config as Config
+from .config import load_config as load_config
+from .config import parse_date_input as parse_date_input
+from .delete import build_delete_query as build_delete_query
+from .delete import execute_deletion as execute_deletion
+from .delete import find_deletable_messages as find_deletable_messages
+from .keep import label_latest_as_keep as label_latest_as_keep

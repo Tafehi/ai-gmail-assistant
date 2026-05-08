@@ -1,5 +1,4 @@
 from datetime import date
-from pathlib import Path
 
 import click
 from rich.console import Console
@@ -281,7 +280,7 @@ def chat():
     import uvicorn
     console.print("[bold]Starting AI Gmail Assistant...[/bold]")
     console.print("Open [cyan]http://localhost:8000[/cyan] in your browser.\n")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
 
 
 if __name__ == "__main__":
