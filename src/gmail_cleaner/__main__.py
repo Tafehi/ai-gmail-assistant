@@ -173,5 +173,58 @@ def clean(category: str, keep_month: str | None, dry_run: bool | None):
     console.print(f"\n[green]Done.[/green] Permanently deleted {deleted:,} {category} emails.")
 
 
+@cli.command()
+@click.argument("label_name")
+@click.option("--query", "-q", required=True, help="Gmail search query to match emails")
+@click.option("--color", type=str, default=None, help="Label color (e.g. red, blue, green, yellow, purple, orange)")
+@click.option("--max", "max_results", type=int, default=None, help="Max emails to label")
+def label(label_name: str, query: str, color: str | None, max_results: int | None):
+    """Apply a label to emails matching a query.
+
+    Example: gmail-cleaner label "Receipts" -q "subject:receipt"
+    """
+    COLOR_MAP = {
+        "red": ("#cc3a21", "#ffffff"),
+        "blue": ("#285bac", "#ffffff"),
+        "green": ("#076239", "#ffffff"),
+        "yellow": ("#f2c960", "#000000"),
+        "purple": ("#653e9b", "#ffffff"),
+        "orange": ("#fa903e", "#ffffff"),
+        "teal": ("#2da2bb", "#ffffff"),
+        "gray": ("#666666", "#ffffff"),
+        "pink": ("#b65775", "#ffffff"),
+    }
+
+    client, config = _get_client()
+
+    bg_color, text_color = None, None
+    if color:
+        if color.lower() in COLOR_MAP:
+            bg_color, text_color = COLOR_MAP[color.lower()]
+        else:
+            console.print(f"[yellow]Unknown color '{color}'. Available: {', '.join(COLOR_MAP.keys())}[/yellow]")
+            return
+
+    label_id = client.get_or_create_label(label_name, bg_color, text_color)
+
+    console.print(f"Query: [cyan]{query}[/cyan]")
+    console.print("Finding emails...")
+
+    message_ids = client.list_message_ids(query, max_results)
+    total = len(message_ids)
+
+    if total == 0:
+        console.print("[green]No emails found matching query.[/green]")
+        return
+
+    console.print(f"Labeling {total:,} emails as '{label_name}'...")
+
+    for i in range(0, total, config.batch_size):
+        batch = message_ids[i : i + config.batch_size]
+        client.batch_modify(batch, add_label_ids=[label_id])
+
+    console.print(f"[green]Done.[/green] Labeled {total:,} emails as '{label_name}'.")
+
+
 if __name__ == "__main__":
     cli()
