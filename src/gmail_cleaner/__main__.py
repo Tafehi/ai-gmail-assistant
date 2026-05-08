@@ -28,7 +28,7 @@ def cli():
 def auth():
     """Authenticate with Google (run OAuth flow)."""
     config = load_config()
-    creds = get_credentials(config.credentials_path, config.token_path)
+    get_credentials(config.credentials_path, config.token_path)
     console.print(f"[green]Authenticated successfully.[/green] Token saved to {config.token_path}")
 
 
@@ -44,7 +44,7 @@ def status():
     deletable = client.count_messages(query)
     keep_count = client.count_messages("label:Keep")
 
-    console.print(f"\n[bold]Gmail Status[/bold]")
+    console.print("\n[bold]Gmail Status[/bold]")
     console.print(f"  Total emails:          {total:,}")
     console.print(f"  Before {config.delete_before_date}:  {deletable:,}")
     console.print(f"  Labeled 'Keep':        {keep_count:,}")
