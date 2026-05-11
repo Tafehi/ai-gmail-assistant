@@ -1,235 +1,143 @@
-# AI Gmail Assistant — Talk to Your Gmail Using LLM & Skills
+# AI Gmail Assistant — Talk to Your Gmail
 
-Talk to your Gmail using AI. Manage your inbox through natural language — search, read, label, auto-categorize, clean categories, and bulk-delete old emails. Use the **web chat UI** with any LLM provider (Anthropic, OpenAI, Azure, AWS Bedrock) or **Claude Code skills** directly.
+Talk to your Gmail — literally. Use your voice or type natural language to manage your inbox. Search, read, label, categorize, clean, and bulk-delete emails without ever opening Gmail.
+
+![Demo](pics/demo.gif)
 
 ## Features
 
-- **Modern dark chat UI** — FastAPI + vanilla HTML/CSS/JS with animations and typing indicators
-- **Multi-LLM support** — Anthropic Claude, OpenAI GPT, Azure OpenAI, AWS Bedrock via LangChain
-- **Natural language control** — ask the AI to manage your email in plain English
-- **AI auto-labeling** — reads email subjects and auto-categorizes with colored labels
-- **Smart labeling** — apply labels with colors to emails matching any Gmail query
-- **Bulk delete by date** — permanently remove all emails before a specific date
-- **Clean categories** — delete all Promotions, Social, Updates, or Forums emails except the current month
-- **Keep label** — protect your latest N emails from deletion
-- **Dry-run by default** — always preview before deleting
-- **Skills as prompts** — `.claude/skills/*.md` are loaded as system context for any LLM
-- **CI/CD** — GitHub Actions with security scanning, linting, and functional tests
+- **Voice input** — click the mic and speak your commands (Chrome/Edge)
+- **Multi-LLM chat** — Anthropic Claude, OpenAI GPT-4o, Azure OpenAI, AWS Bedrock
+- **Read emails** — ask who sent your latest email, when, and what it says
+- **Auto-label** — "label my 5 latest emails based on content" — AI picks categories and colors
+- **Bulk delete** — "delete all emails before 2023" with dry-run safety
+- **Clean categories** — wipe Promotions, Social, or Updates tabs in one command
+- **Animated UI** — dark theme with particle network background and typing indicators
+- **CLI + Web** — use the chat UI or the `gmail-cleaner` command-line tool
+- **Skills as prompts** — `.claude/skills/*.md` loaded as system context for any LLM
+- **CI/CD** — GitHub Actions with security scanning, linting, type checking, and tests
 
-## How It Works
-
-```
-Browser (static/index.html) ←→ FastAPI (main.py) ←→ LangGraph Agent (src/llm/) ←→ Gmail API (src/gmail/)
-```
-
-1. **FastAPI backend** (`main.py`) — serves the chat page and API endpoints
-2. **LangChain + LangGraph** (`src/llm/`) — ReAct agent with Gmail tools and provider switching
-3. **Gmail API wrapper** (`src/gmail/`) — powers the actual operations (delete, label, clean)
-4. **Claude Code Skills** (`.claude/skills/`) — operational knowledge loaded as system prompts
-5. **Gmail MCP Server** — lets Claude search and read your emails directly
-
-### Request Flow
-
-1. User opens `http://localhost:8000` → FastAPI serves `static/index.html`
-2. JS fetches `GET /api/providers` → populates provider/model dropdowns
-3. JS fetches `GET /api/status` → shows green dot if Gmail is authenticated
-4. User types a message → JS `POST /api/chat` with `{message, provider, model, history}`
-5. FastAPI creates (or retrieves cached) LangGraph agent for that provider/model
-6. Agent reads skills system prompt, binds Gmail tools, processes the message
-7. Agent may call tools (`gmail_search`, `gmail_status`, etc.) which hit the Gmail API
-8. Final response returned as JSON → JS renders it with typing animation
-
-### API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Serves the chat HTML page |
-| GET | `/api/providers` | Lists available LLM providers and models |
-| GET | `/api/status` | Checks Gmail authentication status |
-| POST | `/api/chat` | Main chat endpoint — sends message to LLM agent |
-| POST | `/api/auth` | Triggers Gmail OAuth flow |
-
-## Prerequisites
-
-- Python 3.10+
-- A Google Cloud project with Gmail API enabled
-- At least one LLM provider API key (Anthropic, OpenAI, Azure, or AWS)
-
-## Google Cloud Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select existing)
-3. **APIs & Services > Library** — search and enable **Gmail API**
-4. **APIs & Services > Credentials** — click **Create Credentials > OAuth client ID**
-5. Configure the OAuth consent screen:
-   - Choose "External" user type
-   - Add your email as a **test user**
-6. Create OAuth client ID:
-   - Application type: **Desktop app**
-   - Download the JSON and save as `credentials.json` in the project root
-
-## Installation
+## Quick Start
 
 ```bash
 git clone https://github.com/Tafehi/ai-gmail-cleaner.git
 cd ai-gmail-cleaner
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env         # Add your LLM API key
+gmail-cleaner auth           # Authenticate with Gmail
+python main.py               # Open http://localhost:8000
 ```
 
-Edit `.env` with your settings:
+## How It Works
 
-```env
-DELETE_BEFORE_DATE=03.2024
-KEEP_LATEST_COUNT=1000
-DRY_RUN=true
-
-# Add at least one LLM provider key
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-proj-...
+```
+Voice/Text → Browser → FastAPI → LangGraph Agent → Gmail API
+                                      ↓
+                              LLM (OpenAI/Claude/Bedrock)
+                                      ↓
+                              Gmail Tools (read, label, delete, search)
 ```
 
-## Web Chat UI
+1. You speak or type a command in the browser
+2. FastAPI passes it to a LangGraph ReAct agent with your chosen LLM
+3. The agent decides which Gmail tools to call (read, search, label, delete)
+4. Tools execute against the Gmail API and return results
+5. The agent summarizes what happened and responds
 
-![Chat UI](pics/chat-ui.png)
+## Voice Input
 
-Launch the chat interface:
+Click the **microphone button** next to the input field:
+- Button turns red and pulses while listening
+- Speak your command naturally ("what is my latest email")
+- When you stop talking, the message auto-sends
+- Works in **Chrome** and **Edge** (uses Web Speech API)
 
-```bash
-python main.py
-```
+## Supported LLM Providers
 
-Or via CLI:
+Configure your API key in `.env`:
 
-```bash
-gmail-cleaner chat
-```
+| Provider | Key | Models |
+|----------|-----|--------|
+| **OpenAI** | `OPENAI_API_KEY` | gpt-4o, gpt-4o-mini, gpt-4-turbo |
+| Anthropic | `ANTHROPIC_API_KEY` | claude-sonnet-4, claude-haiku-4 |
+| Azure OpenAI | `AZURE_OPENAI_API_KEY` + endpoint | gpt-4o, gpt-4o-mini |
+| AWS Bedrock | `AWS_ACCESS_KEY_ID` + secret | claude-sonnet-4, titan |
 
-Then open **http://localhost:8000** in your browser.
+Switch providers and models from the sidebar dropdown — no restart needed.
 
-### Provider Selection
+## Example Commands
 
-Select your LLM provider and model from the header dropdowns:
+Say or type any of these:
 
-| Provider | Required .env Keys |
-|----------|-------------------|
-| **Anthropic** (default) | `ANTHROPIC_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Azure OpenAI | `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_VERSION` |
-| AWS Bedrock | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` |
-
-### Gmail Authentication
-
-Run `gmail-cleaner auth` from the terminal on first use — it opens a browser for Google OAuth consent.
-
-### Example Prompts
-
-- *"How many emails do I have?"*
-- *"Search for emails from Amazon"*
-- *"Label all emails from Netflix as Entertainment with orange color"*
-- *"Clean my promotions tab"*
-- *"Delete emails before 2023"*
+| Command | What it does |
+|---------|-------------|
+| "How many emails do I have?" | Shows total, deletable, and protected counts |
+| "What is my latest email?" | Reads subject, sender, date, and content |
+| "Search for emails from Amazon" | Lists matching email subjects |
+| "Label my 5 latest emails based on content" | AI categorizes and applies colored labels |
+| "Clean my promotions tab" | Deletes all promotions except current month |
+| "Delete emails before March 2024" | Dry-run preview of deletion |
 
 ## CLI Commands
 
-### Authenticate
-
 ```bash
-gmail-cleaner auth
-```
-
-### Check Status
-
-```bash
-gmail-cleaner status
-```
-
-### Protect Recent Emails
-
-```bash
-gmail-cleaner keep
-gmail-cleaner keep --count 2000
-```
-
-### Delete Old Emails
-
-```bash
-gmail-cleaner delete                              # Dry-run preview
-gmail-cleaner delete --before 03.2024             # Override date
+gmail-cleaner auth                              # OAuth flow
+gmail-cleaner status                            # Email counts
+gmail-cleaner keep --count 1000                 # Protect latest N emails
+gmail-cleaner delete --before 03.2024           # Dry-run delete
 gmail-cleaner delete --before 03.2024 --no-dry-run  # Actually delete
-```
-
-### Clean a Category
-
-```bash
-gmail-cleaner clean promotions                    # Keep current month only
-gmail-cleaner clean promotions --keep-month 05.2026
-gmail-cleaner clean social --no-dry-run
-gmail-cleaner clean updates
-gmail-cleaner clean forums
-```
-
-### Label Emails
-
-```bash
+gmail-cleaner clean promotions                  # Clean a category
 gmail-cleaner label "Finance" -q "subject:invoice" --color green
-gmail-cleaner label "Shopping" -q "from:amazon" --color orange
-gmail-cleaner label "Work" -q "from:@company.com" --color purple --max 200
+gmail-cleaner chat                              # Launch web UI
 ```
 
-**Available colors:** `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `teal`, `gray`, `pink`
+**Label colors:** `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `teal`, `gray`, `pink`
+
+## Google Cloud Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project → enable **Gmail API**
+3. Create **OAuth client ID** (Desktop app type)
+4. Add your email as a test user in the consent screen
+5. Download the JSON → save as `credentials.json` in project root
+
+## Safety
+
+- **Dry-run by default** — requires explicit confirmation to delete
+- **Keep label** — protected emails are never deleted
+- **Irreversible deletion** — `batchDelete` permanently removes (no trash)
+- **Security scanning** — Bandit + dependency checks on every push
+
+## Architecture
+
+```
+main.py                     # FastAPI app (serves UI + API)
+static/index.html           # Chat UI with voice, particles, dark theme
+src/
+├── gmail/                  # Gmail API layer
+│   ├── auth.py             # OAuth2 flow + token caching
+│   ├── client.py           # API wrapper (list, delete, modify, labels, read)
+│   ├── config.py           # .env loading + date parsing
+│   ├── delete.py           # Bulk deletion logic
+│   └── keep.py             # "Keep" label protection
+├── llm/
+│   └── agent.py            # LangGraph agent, 8 Gmail tools, provider switching
+└── cli.py                  # Click CLI (auth, status, keep, delete, clean, label, chat)
+```
 
 ## Claude Code Skills
 
 | Skill | Description |
 |-------|-------------|
 | `gmail` | General Gmail management — status, delete, clean, keep, label |
-| `gmail-auto-label` | AI reads email subjects and auto-categorizes with colored labels |
+| `gmail-auto-label` | AI reads subjects and auto-categorizes with colored labels |
 
-Skills are also loaded as system prompts for the LangGraph agent — any LLM gets the same operational knowledge.
-
-## MCP Integration
-
-The Gmail MCP server config is in `.claude/settings.json`. Add your OAuth credentials to enable Claude to search, read, and label emails interactively via Google's official MCP endpoint.
-
-## Safety
-
-- **Dry-run by default** — requires explicit `--no-dry-run` or `confirm=True` to delete
-- **Confirmation prompt** — asks before executing deletion
-- **Keep label exclusion** — emails labeled "Keep" are never deleted
-- **Irreversible** — `batchDelete` permanently removes emails with no recovery
-- **Security scans** — Bandit + Safety run on every push via GitHub Actions
+Skills double as system prompts for the LangGraph agent — any LLM gets the same operational knowledge that Claude Code uses.
 
 ## CI/CD
 
-GitHub Actions runs on every push and PR:
-- **Security** — Bandit static analysis + dependency vulnerability scan
-- **Tests** — pytest functional tests for config parsing, query building, and FastAPI endpoints
-- **Lint** — Ruff linting + formatting + mypy type checking
-
-## Project Structure
-
-```
-├── main.py                     # FastAPI app entry point
-├── requirements.txt            # All dependencies
-├── static/
-│   └── index.html              # Chat UI (HTML/CSS/JS)
-├── .claude/
-│   ├── settings.json           # Gmail MCP server config
-│   └── skills/
-│       ├── gmail.md            # General Gmail management skill
-│       └── gmail-auto-label.md # AI auto-labeling skill
-├── .github/workflows/ci.yml    # Security + tests + lint
-├── src/
-│   ├── gmail/
-│   │   ├── auth.py             # OAuth2 flow + token caching
-│   │   ├── client.py           # Gmail API wrapper
-│   │   ├── config.py           # .env loading + date parsing
-│   │   ├── delete.py           # Bulk deletion logic
-│   │   └── keep.py             # "Keep" label logic
-│   ├── llm/
-│   │   └── agent.py            # LangGraph agent, provider switching, Gmail tools
-│   └── cli.py                  # Click CLI (auth, status, keep, delete, clean, label, chat)
-└── tests/                      # Functional + API tests
-```
+GitHub Actions on every push:
+- **Security** — Bandit static analysis
+- **Tests** — pytest (config parsing + FastAPI endpoints)
+- **Lint** — Ruff lint + format + mypy type checking
