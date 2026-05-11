@@ -104,7 +104,7 @@ def get_llm(provider: str, model: str):
     if provider == "OpenAI":
         from langchain_openai import ChatOpenAI
 
-        return ChatOpenAI(model=model, api_key=os.getenv("OPENAI_API_KEY"))
+        return ChatOpenAI(model=model, api_key=os.getenv("OPENAI_API_KEY"))  # type: ignore[arg-type]
 
     elif provider == "Azure OpenAI":
         from langchain_openai import AzureChatOpenAI
@@ -112,22 +112,19 @@ def get_llm(provider: str, model: str):
         return AzureChatOpenAI(
             azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", model),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY", ""),
+            api_key=os.getenv("AZURE_OPENAI_API_KEY", ""),  # type: ignore[arg-type]
             api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
         )
 
     elif provider == "AWS Bedrock":
         from langchain_aws import ChatBedrock
 
-        return ChatBedrock(
-            model_id=model,
-            region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
-        )
+        return ChatBedrock(model_id=model, region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"))  # type: ignore[call-arg]
 
     elif provider == "Anthropic":
         from langchain_anthropic import ChatAnthropic
 
-        return ChatAnthropic(model=model, api_key=os.getenv("ANTHROPIC_API_KEY"))
+        return ChatAnthropic(model=model, api_key=os.getenv("ANTHROPIC_API_KEY"))  # type: ignore[arg-type, call-arg]
 
     raise ValueError(f"Unknown provider: {provider}")
 

@@ -523,6 +523,40 @@
 
         .send-btn svg { width: 18px; height: 18px; }
 
+        .mic-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(39, 39, 42, 0.8);
+            border: 1px solid rgba(63, 63, 70, 0.6);
+            color: #a1a1aa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .mic-btn:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #e4e4e7;
+        }
+
+        .mic-btn.listening {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #ef4444;
+            animation: mic-pulse 1.5s infinite;
+        }
+
+        @keyframes mic-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .mic-btn svg { width: 18px; height: 18px; }
+
         /* --- Responsive --- */
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -615,6 +649,14 @@
             <div class="input-wrapper">
                 <textarea id="input" placeholder="Ask about your Gmail..." rows="1"
                           onkeydown="handleKeydown(event)" oninput="autoResize(this)"></textarea>
+                <button class="mic-btn" id="mic-btn" onclick="toggleVoice()" title="Voice input">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
                 <button class="send-btn" id="send-btn" onclick="sendMessage()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
@@ -857,6 +899,75 @@
         function autoResize(el) {
             el.style.height = 'auto';
             el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        // --- Voice Input (Web Speech API) ---
+        let recognition = null;
+        let isListening = false;
+
+        function toggleVoice() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                addMessage('assistant', 'Voice input is not supported in this browser. Please use Chrome or Edge.');
+                return;
+            }
+
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            const micBtn = document.getElementById('mic-btn');
+            const input = document.getElementById('input');
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('listening');
+                input.placeholder = 'Listening...';
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                input.value = transcript;
+                autoResize(input);
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                input.placeholder = 'Ask about your Gmail...';
+                if (input.value.trim()) {
+                    sendMessage();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                input.placeholder = 'Ask about your Gmail...';
+                if (event.error !== 'no-speech') {
+                    addMessage('assistant', `Voice error: ${event.error}. Make sure microphone access is allowed.`);
+                }
+            };
+
+            recognition.start();
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
         }
 
         init();
